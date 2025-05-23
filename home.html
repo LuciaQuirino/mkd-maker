@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Markdown</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="icon" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" type="image/png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+  <style>
+    body { margin: 40px; background-color: #2A2A2A; }
+    textarea.form-control { height: 120px; }
+    pre { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6; }
+    .form {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    .form-label {
+        font-weight: 500;
+    }
+    .list-group-item button {
+        margin-left: 10px;
+    }
+
+    .bootstrap-select > .dropdown-toggle {
+        display: block;
+        width: 100%;
+    }
+    
+    .bootstrap-select {
+        width: 100% !important;
+    }
+
+    .bootstrap-select > .dropdown-toggle {
+    display: block;
+    width: 100%;
+    }
+
+    #projeto {
+        height: 53px;
+    }
+
+    #generate-shortcut:hover small {
+        color: #f8f9fa !important;
+    }
+
+    hr.section-divider {
+        border-top: 3px solid #000000;
+        margin: 2rem 0;
+        box-shadow: inset 0 1px 0 rgb(23, 27, 41);
+    }
+
+    .requisito-cor .accordion-button { background-color: #3B6790; }
+
+    .titulo-preview {
+        color: white;
+    }
+
+    #listaSumario {
+        border: solid 1px white !important;
+    }
+
+    #listaSumario li:hover {
+        background-color: #252a3a !important;
+    }
+
+    .destacar-requisito {
+        animation: destaque 4s ease-in-out;
+        box-shadow: 0 0 15px 5px #ffc107;
+        border: 2px solid #ffc107 !important;
+    }
+
+    @keyframes destaque {
+        0%   { background-color: #fff3cd; }
+        60%  { background-color: #ffeeba; }
+        100% { background-color: white; }
+    }
+
+    @keyframes destaque {
+        0%   { background-color: #fff3cd; box-shadow: 0 0 20px 10px #ffc107; }
+        50%  { background-color: #ffeeba; }
+        100% { background-color: white; box-shadow: 0 0 0 0 transparent; }
+    }
+  </style>
+</head>
+<body>
+    <div id="easterHippo" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+        <iframe src="https://giphy.com/embed/TgDe2sUsoEcmgLFAIY" width="300" height="188" frameborder="0" allowfullscreen></iframe>
+    </div>
+
+  <div class="container">
+    <h1 class="mb-4 text-white d-flex align-items-center gap-2">
+      <i class="fa-brands fa-markdown"></i>
+      <span id="tituloPagina">Formulário - Gerador de Markdown</span>
+    </h1>
+
+    <div class="d-flex mb-3 justify-content-between">
+        <input type="file" id="importarJSON" accept=".json" style="display: none;" onchange="importarJSON(event)">
+            <button type="button" class="btn btn-outline-light btn-sm" onclick="document.getElementById('importarJSON').click()">
+            <i class="fa-solid fa-file-import"></i> Importar JSON
+        </button>
+    </div>
+
+    <button class="btn btn-primary position-fixed bottom-0 end-0 m-4 rounded-circle shadow" 
+        style="width: 50px; height: 50px; z-index: 1050;" 
+        data-bs-toggle="modal" data-bs-target="#modalSumario" 
+        title="Abrir Sumário (Ctrl + M)">
+    <i class="fa-solid fa-list"></i>
+    </button>
+
+    <div class="modal fade" id="modalSumario" tabindex="-1" aria-labelledby="modalSumarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalSumarioLabel">📑 Sumário</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+            <ul id="listaSumario" class="list-group list-group-flush"></ul>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+            <button class="btn btn-outline-light btn-sm" onclick="scrollParaFim()">
+            <i class="fa-solid fa-arrow-down"></i> Fim
+            </button>
+            <button class="btn btn-outline-light btn-sm" onclick="scrollParaTopo()">
+            <i class="fa-solid fa-arrow-up"></i> Topo
+            </button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <form id="markdownForm" class="form">
+        <div class="row">
+            <div class="mb-3">
+        <label class="form-label">Times Disponíveis</label>
+        <div id="checkboxTimes" class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="Digital Account" id="chkDigital">
+            <label class="form-check-label" for="chkDigital">Digital Account</label>
+            </div>
+            <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="B2C" id="chkB2C">
+            <label class="form-check-label" for="chkB2C">B2C</label>
+            </div>
+            <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="PIX" id="chkPIX">
+            <label class="form-check-label" for="chkPIX">PIX</label>
+            </div>
+            <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="EVA" id="chkEVA">
+            <label class="form-check-label" for="chkEVA">EVA</label>
+            </div>
+        </div>
+        </div>
+        </div>
+        <hr class="section-divider">
+        <div class="row d-flex align-items-end">
+        <div class="col-md-12 mb-3">
+            <label for="projeto" class="form-label">📌 Nome do Projeto</label>
+            <input type="text" class="form-control border-secondary" id="projeto" name="projeto">
+        </div>
+        </div>
+
+        <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="escopoProjeto" class="form-label">Escopo do Projeto</label>
+            <input type="text" class="form-control border-secondary" id="escopoProjeto" name="escopoProjeto" value="#">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="analiseRequisitos" class="form-label">Análise de Requisitos</label>
+            <input type="text" class="form-control border-secondary" id="analiseRequisitos" name="analiseRequisitos" value="#">
+        </div>
+        </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label for="versao" class="form-label">🔢 Versão</label>
+          <input type="text" class="form-control border-secondary" id="versao" name="versao" value="1.1">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label for="data" class="form-label">📅 Data</label>
+          <input type="date" class="form-control border-secondary" id="data" name="data">
+        </div>
+        <div class="col-md-4 mb-3">
+          <label for="autor" class="form-label">👩‍💻 Autor</label>
+          <input type="text" class="form-control border-secondary" id="autor" name="autor" value="Lúcia Quirino">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="objetivo" class="form-label">🎯 Objetivo</label>
+        <textarea class="form-control border-secondary" id="objetivo" name="objetivo"></textarea>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="mb-3">
+        <label class="form-label">🛑 Itens fora do escopo (Digite e pressione Enter)</label>
+        <div class="input-group mb-2">
+          <input type="text" class="form-control border-secondary" id="inputForaEscopo">
+          <button type="button" class="btn btn-outline-primary" onclick="adicionarItem()">
+            <i class="fa-solid fa-plus"></i> Adicionar
+          </button>
+        </div>
+        <ul id="listaForaEscopo" class="list-group mb-2"></ul>
+        <input type="hidden" id="foraEscopo" name="foraEscopo">
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="accordion mb-3" id="containerRequisitos"></div>
+
+        <div class="mb-3 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-success" onclick="adicionarRequisitoComUserStory()">
+                    <i class="fa-solid fa-plus"></i> Adicionar Requisito
+                </button>
+        </div>
+
+        <hr class="section-divider">
+
+      <div>
+        <button id="generate-shortcut" type="button" class="btn btn-outline-secondary btn-sm" onclick="gerarMarkdown()" title="Atalho: Ctrl + Enter">
+            <i class="fa-solid fa-gear"></i> Gerar Markdown <small class="text-secondary-50">(Ctrl + Enter)</small>
+        </button>
+      </div>
+    </form>
+
+    <h2 class="mt-5 text-white d-flex align-items-center gap-2">
+      <i class="fa-solid fa-check"></i>
+      Markdown Gerado
+    </h2>
+    <button class="btn btn-outline-light mb-2 btn-sm" onclick="copiarMarkdown()">
+      <i class="fa-solid fa-copy"></i> Copiar Markdown
+    </button>
+    <button class="btn btn-outline-light mb-2 btn-sm" onclick="exportarJSON()">
+        <i class="fa-solid fa-file-export"></i> Exportar JSON
+    </button>
+    <button class="btn btn-outline-light mb-2 btn-sm" onclick="exportarParaPPTX()">
+        <i class="fa-solid fa-file-powerpoint"></i> Exportar PPTX
+    </button>
+    <pre id="resultado"></pre>
+    <div class="text-start my-3">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="limparTemplate()">
+            <i class="fa-solid fa-broom"></i> Limpar Template
+        </button>
+    </div>
+  </div>
+
+
+  <footer class="mt-5 text-center text-white">
+    <i class="fa-solid fa-heart text-danger me-1"></i>
+    <strong>Feito com amor para Luh ❤️</strong>
+  </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+function gerarMarkdown() {
+  const form = document.getElementById('markdownForm');
+  const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
+  .map(input => `[${input.value}]`)
+  .join(" - ");
+  const nomeProjeto = form.projeto.value;
+  const escopoProjeto = form.escopoProjeto.value;
+    const analiseRequisitos = form.analiseRequisitos.value;
+
+  let markdown = `
+
+## ${timesSelecionados} ${nomeProjeto}
+
+**Escopo do Projeto:** ${escopoProjeto}  
+**Análise de Requisitos:** ${analiseRequisitos}
+
+## Controle de Versões
+
+| Versão | Data | Autor | Alterações |
+|--------|------|-------|------------|
+| ${form.versao.value} | ${form.data.value} | ${form.autor.value} | versão inicial |
+
+## Objetivo
+
+${form.objetivo.value}
+
+## Itens fora do escopo
+
+${form.foraEscopo.value}
+
+## Requisitos
+`;
+
+  // Iterar por cada requisito
+  const requisitos = document.querySelectorAll("#containerRequisitos > .accordion-item");
+  requisitos.forEach((requisito, i) => {
+    const titulo = requisito.querySelector(".requisitoTitulo")?.value || `Requisito ${i + 1}`;
+    markdown += `
+
+### ${titulo}
+`;
+
+    const stories = requisito.querySelectorAll(".userStory");
+    stories.forEach((storyInput, j) => {
+      const story = storyInput.value;
+      const intro = requisito.querySelectorAll(".introducao")[j].value;
+      const sistema = requisito.querySelectorAll(".sistema")[j].value;
+      const caminho = requisito.querySelectorAll(".caminho")[j].value;
+      const regras = requisito.querySelectorAll(".regras")[j].value;
+      const funcName = requisito.querySelectorAll(".funcName")[j].value;
+      const path = requisito.querySelectorAll(".path")[j].value;
+      const descFunc = requisito.querySelectorAll(".descFunc")[j].value;
+
+      markdown += `
+
+#### ${story}
+
+${intro}
+
+**Sistema:** ${sistema}  
+**Caminho:** ${caminho}  
+
+**Regras:**  
+${regras}
+
+**Funcionalidade**
+
+| Nome da Funcionalidade | Caminho no Menu do Sistema/Perfil | Descrição |
+|------------------------|------------------------------------|-----------|
+| ${funcName} | ${path} | ${descFunc} |
+`;
+    });
+  });
+
+  document.getElementById('resultado').textContent = markdown;
+
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: 'success',
+    title: 'Markdown gerado com sucesso!',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+  });
+
+  const dadosForm = {
+  versao: form.versao.value,
+  data: form.data.value,
+  autor: form.autor.value,
+  objetivo: form.objetivo.value,
+  projeto: form.projeto.value,
+  escopoProjeto: form.escopoProjeto.value,
+  analiseRequisitos: form.analiseRequisitos.value,
+  foraEscopo: itensForaEscopo,
+  times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+  requisitos: []
+};
+
+document.querySelectorAll("#containerRequisitos > .accordion-item").forEach(requisito => {
+  const titulo = requisito.querySelector(".requisitoTitulo")?.value || "";
+  const stories = [];
+
+  requisito.querySelectorAll(".userStory").forEach((storyInput, i) => {
+    stories.push({
+      userStory: storyInput.value,
+      introducao: requisito.querySelectorAll(".introducao")[i].value,
+      sistema: requisito.querySelectorAll(".sistema")[i].value,
+      caminho: requisito.querySelectorAll(".caminho")[i].value,
+      regras: requisito.querySelectorAll(".regras")[i].value,
+      funcName: requisito.querySelectorAll(".funcName")[i].value,
+      path: requisito.querySelectorAll(".path")[i].value,
+      foraEscopo: [...itensForaEscopo],
+      descFunc: requisito.querySelectorAll(".descFunc")[i].value
+    });
+  });
+
+  dadosForm.requisitos.push({ titulo, stories });
+});
+
+localStorage.setItem("markdownForm", JSON.stringify(dadosForm));
+
+}
+
+    let itensForaEscopo = [];
+
+function adicionarItem() {
+  const input = document.getElementById("inputForaEscopo");
+  const valor = input.value.trim();
+  if (valor !== "") {
+    itensForaEscopo.push(valor);
+    atualizarLista();
+    salvarDados(); // ✅ aqui
+    input.value = "";
+  }
+}
+
+function atualizarLista() {
+  const ul = document.getElementById("listaForaEscopo");
+  ul.innerHTML = "";
+  itensForaEscopo.forEach((item, index) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between align-items-center";
+    li.textContent = item;
+
+    const btn = document.createElement("button");
+    btn.textContent = "✕";
+    btn.className = "btn btn-sm btn-danger";
+    btn.onclick = () => {
+      itensForaEscopo.splice(index, 1);
+      atualizarLista();
+      salvarDados(); // ✅ aqui também
+    };
+
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+
+  document.getElementById("foraEscopo").value = itensForaEscopo.map(i => `- ${i}`).join("\n");
+}
+
+    let contadorRequisito = 0;
+const requisitosExtras = [];
+
+function alternarIcone(botao) {
+  const icone = botao.querySelector("i");
+  const targetId = botao.getAttribute("data-bs-target");
+  const target = document.querySelector(targetId);
+
+  if (target.classList.contains("show")) {
+    // Vai fechar
+    icone.classList.remove("fa-chevron-up");
+    icone.classList.add("fa-chevron-down");
+  } else {
+    // Vai abrir
+    icone.classList.remove("fa-chevron-down");
+    icone.classList.add("fa-chevron-up");
+  }
+}
+
+function removerRequisito(botao) {
+  const card = botao.closest(".mb-3");
+  if (card) {
+    card.remove();
+  }
+}
+
+    function copiarMarkdown() {
+    const markdown = document.getElementById("resultado").textContent;
+    navigator.clipboard.writeText(markdown)
+        .then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Copiado!',
+            text: 'Markdown copiado para a área de transferência. ✅',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        })
+        .catch(err => {
+        console.error("Erro ao copiar: ", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Não foi possível copiar o conteúdo. 😕'
+        });
+        });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        const inputData = document.getElementById("data");
+        const hoje = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+        inputData.value = hoje;
+    });
+
+    document.getElementById("inputForaEscopo").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault(); // Evita o submit, se estiver dentro de um <form>
+            adicionarItem();
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+    const inputData = document.getElementById("data");
+    const hoje = new Date().toISOString().split("T")[0];
+    inputData.value = hoje;
+
+    // Ctrl + Enter para gerar markdown
+    document.addEventListener("keydown", function(event) {
+        if (event.ctrlKey && event.key === "Enter") {
+        event.preventDefault();
+        gerarMarkdown();
+        }
+    });
+    });
+
+    let contadorCards = 0;
+
+function adicionarRequisitoCard() {
+  contadorCards++;
+  const container = document.getElementById("containerRequisitos");
+
+  const card = document.createElement("div");
+  card.className = "card rounded p-3 bg-light mb-3";
+
+  card.innerHTML = `
+    <div class="mb-3">
+      <label class="form-label">Requisito (Ex: RF01 - Nome do Requisito)</label>
+      <input type="text" class="form-control border-secondary requisitoCard">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">User Story</label>
+      <input type="text" class="form-control border-secondary userStoryCard">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Introdução do Requisito</label>
+      <textarea class="form-control border-secondary introducaoCard"></textarea>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Sistema</label>
+        <input type="text" class="form-control border-secondary sistemaCard">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Caminho</label>
+        <input type="text" class="form-control border-secondary caminhoCard">
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Regras</label>
+      <textarea class="form-control border-secondary regrasCard"></textarea>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Nome da Funcionalidade</label>
+        <input type="text" class="form-control border-secondary funcNameCard">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Caminho no Menu</label>
+        <input type="text" class="form-control border-secondary pathCard">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Descrição</label>
+        <input type="text" class="form-control border-secondary descFuncCard">
+      </div>
+    </div>
+  `;
+
+  container.appendChild(card);
+}
+
+let requisitoIndex = 0;
+
+function adicionarRequisitoComUserStory(req = { titulo: "Novo Requisito", stories: [] }) {
+  const container = document.getElementById("containerRequisitos");
+  const index = requisitoIndex++;
+  const requisitoId = `requisito-${index}`;
+  const storiesId = `userstories-${index}`;
+  const headingId = `heading-${index}`;
+  const collapseId = `collapse-${index}`;
+
+const div = document.createElement("div");
+div.className = "accordion-item";
+const corIndex = Math.floor(Math.random() * 5) + 1;
+div.classList.add(`requisito-cor`);
+div.innerHTML = `
+  <h2 class="accordion-header" id="${headingId}">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+            data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+      <span class="titulo-preview">Novo Requisito</span>
+    </button>
+  </h2>
+  <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="${headingId}" data-bs-parent="#containerRequisitos">
+    <div class="accordion-body">
+      <div class="mb-3">
+        <label class="form-label">Requisito (Ex: RF01 - Nome do Requisito)</label>
+        <input type="text" class="form-control border-secondary requisitoTitulo" value="${req.titulo}"
+               oninput="this.closest('.accordion-item').querySelector('.titulo-preview').textContent = this.value || 'Novo Requisito'">
+      </div>
+      <div id="${storiesId}" class="mt-3 border-start border-3 ps-3"></div>
+      <div class="d-flex justify-content-between mt-3">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarUserStory('${storiesId}')">
+          <i class="fa-solid fa-plus"></i> Adicionar Story
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerRequisitoCard(this)">
+          <i class="fa-solid fa-trash"></i> Remover Requisito
+        </button>
+      </div>
+    </div>
+  </div>
+`;
+
+  container.appendChild(div);
+  salvarDados();
+  return div; 
+}
+
+function adicionarUserStory(storiesId) {
+  const container = document.getElementById(storiesId);
+  const storyDiv = document.createElement("div");
+  storyDiv.className = "card p-3 mb-3 bg-white border";
+
+  storyDiv.innerHTML = `
+    <div class="mb-2">
+      <label class="form-label">User Story</label>
+      <input type="text" class="form-control border-secondary userStory">
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Introdução</label>
+      <textarea class="form-control border-secondary introducao"></textarea>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-2">
+        <label class="form-label">Sistema</label>
+        <input type="text" class="form-control border-secondary sistema">
+      </div>
+      <div class="col-md-6 mb-2">
+        <label class="form-label">Caminho</label>
+        <input type="text" class="form-control border-secondary caminho">
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Regras</label>
+      <textarea class="form-control border-secondary regras"></textarea>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Nome da Funcionalidade</label>
+        <input type="text" class="form-control border-secondary funcName">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Caminho no Menu</label>
+        <input type="text" class="form-control border-secondary path">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Descrição</label>
+        <input type="text" class="form-control border-secondary descFunc">
+      </div>
+    </div>
+    <div class="d-flex justify-content-end mt-3">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerUserStory(this)">
+        <i class="fa-solid fa-trash"></i> Remover Story
+        </button>
+    </div>
+  `;
+
+  container.appendChild(storyDiv);
+  salvarDados();
+  return storyDiv;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("markdownForm");
+  const hoje = new Date().toISOString().split("T")[0];
+  form.data.value = hoje;
+
+  $('.selectpicker').selectpicker();
+
+  // Ctrl + Enter
+  document.addEventListener("keydown", function(event) {
+    if (event.ctrlKey && event.key === "Enter") {
+      event.preventDefault();
+      gerarMarkdown();
+    }
+  });
+
+  // 🧠 Aqui dentro é onde deve carregar o localStorage:
+  const dadosSalvos = localStorage.getItem("markdownForm");
+  if (dadosSalvos) {
+    const dados = JSON.parse(dadosSalvos);
+    form.versao.value = dados.versao || "";
+    form.data.value = dados.data || "";
+    form.autor.value = dados.autor || "";
+    form.objetivo.value = dados.objetivo || "";
+    form.projeto.value = dados.projeto || "";
+    form.escopoProjeto.value = dados.escopoProjeto || "#";
+    form.analiseRequisitos.value = dados.analiseRequisitos || "#";
+
+    if (dados.times) {
+        dados.times.forEach(valor => {
+            const checkbox = document.querySelector(`#checkboxTimes input[value="${valor}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+
+    if (Array.isArray(dados.foraEscopo)) {
+        itensForaEscopo = dados.foraEscopo;
+        atualizarLista();
+    }
+
+    if (dados.requisitos) {
+        dados.requisitos.forEach(req => {
+        const accordion = adicionarRequisitoComUserStory(req); // agora retorna a div criada
+        const storiesContainer = accordion.querySelector('[id^="userstories-"]');
+        
+        req.stories.forEach(story => {
+            const storyDiv = adicionarUserStory(storiesContainer.id);
+            storyDiv.querySelector('.userStory').value = story.userStory || "";
+            storyDiv.querySelector('.introducao').value = story.introducao || "";
+            storyDiv.querySelector('.sistema').value = story.sistema || "";
+            storyDiv.querySelector('.caminho').value = story.caminho || "";
+            storyDiv.querySelector('.regras').value = story.regras || "";
+            storyDiv.querySelector('.funcName').value = story.funcName || "";
+            storyDiv.querySelector('.path').value = story.path || "";
+            storyDiv.querySelector('.descFunc').value = story.descFunc || "";
+        });
+
+        const inputTitulo = accordion.querySelector(".requisitoTitulo");
+        const spanPreview = accordion.querySelector(".titulo-preview");
+        if (inputTitulo && spanPreview) {
+            spanPreview.textContent = inputTitulo.value || "Novo Requisito";
+        }
+    });
+    }
+
+    setTimeout(() => {
+    document.querySelectorAll(".accordion-item").forEach(item => {
+        const inputTitulo = item.querySelector(".requisitoTitulo");
+        const spanPreview = item.querySelector(".titulo-preview");
+        if (inputTitulo && spanPreview) {
+        spanPreview.textContent = inputTitulo.value || "Novo Requisito";
+        }
+    });
+    }, 0);
+  }
+
+  atualizarTituloPagina();
+  atualizarSumario();
+});
+
+function salvarDados() {
+  const form = document.getElementById("markdownForm");
+  const dadosForm = {
+    versao: form.versao.value,
+    data: form.data.value,
+    autor: form.autor.value,
+    objetivo: form.objetivo.value,
+    projeto: form.projeto.value,
+    escopoProjeto: form.escopoProjeto.value,
+    analiseRequisitos: form.analiseRequisitos.value,
+    foraEscopo: itensForaEscopo,
+    times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+    requisitos: []
+  };
+
+  document.querySelectorAll("#containerRequisitos > .accordion-item").forEach(requisito => {
+    const titulo = requisito.querySelector(".requisitoTitulo")?.value || "";
+    const stories = [];
+
+    requisito.querySelectorAll(".userStory").forEach((storyInput, i) => {
+      stories.push({
+        userStory: storyInput.value,
+        introducao: requisito.querySelectorAll(".introducao")[i].value,
+        sistema: requisito.querySelectorAll(".sistema")[i].value,
+        caminho: requisito.querySelectorAll(".caminho")[i].value,
+        regras: requisito.querySelectorAll(".regras")[i].value,
+        funcName: requisito.querySelectorAll(".funcName")[i].value,
+        path: requisito.querySelectorAll(".path")[i].value,
+        descFunc: requisito.querySelectorAll(".descFunc")[i].value
+      });
+    });
+
+    dadosForm.requisitos.push({ titulo, stories });
+  });
+
+  localStorage.setItem("markdownForm", JSON.stringify(dadosForm));
+}
+
+document.getElementById("markdownForm").addEventListener("input", salvarDados);
+document.getElementById("markdownForm").addEventListener("change", salvarDados);
+
+function removerUserStory(botao) {
+  const storyCard = botao.closest(".card");
+  if (storyCard) {
+    storyCard.remove();
+    salvarDados(); // opcional também
+  }
+}
+
+function removerRequisitoCard(botao) {
+  const card = botao.closest(".accordion-item");
+  if (card) {
+    card.remove();
+    salvarDados?.(); // só chama salvarDados() se existir
+  }
+}
+
+function scrollParaFim() {
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: 'smooth'
+  });
+}
+
+function scrollParaTopo() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function exportarJSON() {
+  const dados = localStorage.getItem("markdownForm");
+
+  if (!dados) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Nada para exportar!',
+      text: 'Nenhum dado encontrado para exportar.',
+    });
+    return;
+  }
+
+  const form = document.getElementById("markdownForm");
+
+  const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
+    .map(input => input.value.replace(/\s+/g, '-'))
+    .join("_") || "SemTime";
+
+  const nomeProjeto = (form.projeto.value || "Projeto").replace(/\s+/g, '-');
+
+  const nomeArquivo = `${timesSelecionados}-${nomeProjeto}.json`;
+
+  const blob = new Blob([dados], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = nomeArquivo;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importarJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const dados = JSON.parse(e.target.result);
+      localStorage.setItem("markdownForm", JSON.stringify(dados));
+      Swal.fire({
+        icon: 'success',
+        title: 'Importado!',
+        text: 'Dados importados com sucesso. A página será recarregada.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setTimeout(() => location.reload(), 2100);
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: 'Falha ao importar o arquivo JSON. Verifique o conteúdo.',
+      });
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function limparTemplate() {
+  Swal.fire({
+    title: 'Tem certeza?',
+    text: 'Isso irá limpar todos os dados preenchidos.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sim, limpar tudo',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      localStorage.removeItem("markdownForm");
+      location.reload();
+    }
+  });
+}
+
+function atualizarTituloPagina() {
+  const times = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
+    .map(input => {
+      const map = {
+        "Digital Account": "DA",
+        "B2C": "B2C",
+        "PIX": "PIX",
+        "EVA": "EVA"
+      };
+      return map[input.value] || input.value;
+    })
+    .join("-");
+
+  const projeto = document.getElementById("projeto").value.trim().replace(/\s+/g, "_");
+
+  const tituloFinal = (times && projeto) ? `${times} | ${projeto}` : "Gerador de Markdown";
+
+  document.title = tituloFinal;
+  document.getElementById("tituloPagina").textContent = `Formulário - Gerador de Markdown (${tituloFinal})`;
+}
+
+
+document.getElementById("projeto").addEventListener("input", atualizarTituloPagina);
+document.querySelectorAll("#checkboxTimes input").forEach(cb => {
+  cb.addEventListener("change", atualizarTituloPagina);
+});
+
+document.getElementById('projeto').addEventListener('input', function () {
+  const valor = this.value.toLowerCase();
+  const easter = document.getElementById('easterHippo');
+  if (valor.includes('domar')) {
+    easter.style.display = 'block';
+  } else {
+    easter.style.display = 'none';
+  }
+});
+
+function atualizarSumario() {
+  const lista = document.getElementById("listaSumario");
+  lista.innerHTML = "";
+
+  document.querySelectorAll(".accordion-item").forEach((item, index) => {
+    const titulo = item.querySelector(".requisitoTitulo")?.value || `Requisito ${index + 1}`;
+    const li = document.createElement("li");
+    li.className = "list-group-item list-group-item-action";
+    li.style.cursor = "pointer";
+    li.style.color = "white";
+    li.textContent = titulo;
+    li.style.backgroundColor = '#212529'
+
+    li.textContent = titulo;
+    li.onclick = () => {
+      item.scrollIntoView({ behavior: "smooth", block: "center" });
+      item.classList.add("destacar-requisito");
+
+      // Remove destaque após X segundos
+      setTimeout(() => {
+        item.classList.remove("destacar-requisito");
+      }, 6000); // tempo combinando com sua animação
+
+      // Fecha o modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalSumario'));
+      if (modal) modal.hide();
+    };
+
+    lista.appendChild(li);
+  });
+}
+
+function destacarRequisito(id) {
+  const elemento = document.getElementById(id);
+  if (elemento) {
+    elemento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    elemento.classList.add('destacar-requisito');
+    setTimeout(() => {
+      elemento.classList.remove('destacar-requisito');
+    }, 1000);
+  }
+}
+
+document.getElementById("markdownForm").addEventListener("input", atualizarSumario);
+
+document.addEventListener('keydown', function (e) {
+  if (e.ctrlKey && e.key.toLowerCase() === 'm') {
+    e.preventDefault();
+    const modal = new bootstrap.Modal(document.getElementById('modalSumario'));
+    modal.show();
+  }
+});
+
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.11.0/dist/pptxgen.min.js"></script>
+
+<script>
+function exportarParaPPTX() {
+  const pptx = new PptxGenJS();
+  pptx.author = "Lúcia Quirino";
+  pptx.title = "User Stories";
+  pptx.company = "EdenRed";
+
+    const form = document.getElementById("markdownForm");
+    const nomeProjeto = form.projeto.value || "Projeto sem nome";
+    const versao = form.versao.value || "";
+    const data = form.data.value || "";
+    const autor = form.autor.value || "";
+    const objetivo = form.objetivo.value || "";
+    const foraEscopo = itensForaEscopo.join("\n• ");
+    const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
+    .map(i => i.value).join(" / ");
+
+    const slideCapa = pptx.addSlide();
+    slideCapa.background = { color: "003366" };
+
+    // Título
+    slideCapa.addText(nomeProjeto, {
+    x: 0.5, y: 0.5, w: 8.5, fontSize: 28, bold: true, color: "FFFFFF", align: "center"
+    });
+
+    // Subtítulo
+    slideCapa.addText(`Times: ${timesSelecionados}`, {
+    x: 0.5, y: 1.4, w: 8.5, fontSize: 18, color: "CCCCCC", align: "center"
+    });
+
+    // Metadata
+    slideCapa.addText(`Versão: ${versao}    |    Data: ${data}`, {
+    x: 0.5, y: 2, w: 8.5, fontSize: 14, color: "CCCCCC", align: "center"
+    });
+    slideCapa.addText(`Autor: ${autor}`, {
+    x: 0.5, y: 2.4, w: 8.5, fontSize: 14, color: "CCCCCC", align: "center"
+    });
+
+    // Objetivo
+    slideCapa.addText("🎯 Objetivo", {
+    x: 0.5, y: 3.1, fontSize: 16, bold: true, color: "FFFFFF"
+    });
+    slideCapa.addText(objetivo, {
+    x: 0.5, y: 3.5, w: 8.5, fontSize: 14, color: "FFFFFF"
+    });
+
+    // Fora do Escopo
+    if (foraEscopo.trim()) {
+    slideCapa.addText("🛑 Fora do Escopo", {
+        x: 0.5, y: 4.5, fontSize: 16, bold: true, color: "FFFFFF"
+    });
+    slideCapa.addText(`• ${foraEscopo}`, {
+        x: 0.5, y: 4.9, w: 8.5, fontSize: 14, color: "FFFFFF"
+    });
+    }
+
+  const requisitos = document.querySelectorAll("#containerRequisitos > .accordion-item");
+
+  requisitos.forEach((requisito, i) => {
+    const titulo = requisito.querySelector(".requisitoTitulo")?.value || `Requisito ${i + 1}`;
+    const stories = requisito.querySelectorAll(".userStory");
+
+    stories.forEach((storyInput, j) => {
+      const story = storyInput.value;
+      const intro = requisito.querySelectorAll(".introducao")[j].value;
+      const sistema = requisito.querySelectorAll(".sistema")[j].value;
+      const caminho = requisito.querySelectorAll(".caminho")[j].value;
+      const regras = requisito.querySelectorAll(".regras")[j].value;
+      const funcName = requisito.querySelectorAll(".funcName")[j].value;
+      const path = requisito.querySelectorAll(".path")[j].value;
+      const descFunc = requisito.querySelectorAll(".descFunc")[j].value;
+
+      const slide = pptx.addSlide();
+      slide.background = { color: 'F5F5F5' };
+
+      // Título do slide
+      slide.addText(`🧩 ${titulo}`, {
+            x: 0.5,
+            y: 0.3,
+            fontSize: 20,
+            bold: true,
+            color: "FFFFFF", // cor do texto
+            fill: { color: "003366" }, // cor de fundo
+            align: "center",
+            w: 8 // largura opcional para expandir o fundo
+      });
+      // Bloco de conteúdo
+      slide.addText(`📜 Story:\n${story}`, {
+        x: 0.5, y: 0.8, fontSize: 16, bold: true, color: "111"
+      });
+
+      slide.addText(`📖 Introdução:\n${intro}`, {
+        x: 0.5, y: 1.5, fontSize: 14, color: "333"
+      });
+
+      slide.addText(`🖥 Sistema: ${sistema}   📁 Caminho: ${caminho}`, {
+        x: 0.5, y: 2.3, fontSize: 14
+      });
+
+      slide.addText(`📌 Regras:\n${regras}`, {
+        x: 0.5, y: 2.8, fontSize: 12, color: "666"
+      });
+
+      slide.addText("🔧 Funcionalidade:", {
+        x: 0.5, y: 3.6, fontSize: 14, bold: true
+      });
+
+      slide.addTable(
+        [
+          [{ text: "Nome", options: { bold: true } }, { text: "Menu", options: { bold: true } }, { text: "Descrição", options: { bold: true } }],
+          [funcName, path, descFunc]
+        ],
+        {
+          x: 0.5,
+          y: 4,
+          w: 8.5,
+          border: { pt: '1', color: '444' },
+          fontSize: 12,
+          align: 'left'
+        }
+      );
+    });
+  });
+
+  pptx.writeFile("user-stories.pptx");
+}
+
+</script>
+
+</body>
+</html>
