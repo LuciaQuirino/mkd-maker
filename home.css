@@ -58,7 +58,7 @@ hr.section-divider {
 }
 
 .requisito-cor .accordion-button {
-	background-color: #3B6790;
+	background-color: #3B6790 !important;
 }
 
 .titulo-preview {
@@ -183,4 +183,106 @@ hr.section-divider {
 
 .dropdown-item:hover {
 	background-color: rgb(215, 216, 216) !important;
+}
+
+.quill-resizable {
+	resize: vertical;
+	overflow: auto;
+	min-height: 150px;
+	max-height: 600px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+}
+
+.quill-resizable .ql-editor {
+	min-height: 100px;
+}
+
+#conteudoPreview {
+	padding: 2rem;
+	background: #ffffff;
+	color: #212529;
+	font-family: "Segoe UI", Roboto, sans-serif;
+	line-height: 1.6;
+	font-size: 1rem;
+}
+
+#conteudoPreview h1,
+#conteudoPreview h2,
+#conteudoPreview h3 {
+	margin-top: 2rem;
+	border-bottom: 1px solid #dee2e6;
+	padding-bottom: 0.5rem;
+	font-weight: 600;
+}
+
+#conteudoPreview p {
+	margin-bottom: 1rem;
+}
+
+#conteudoPreview ul {
+	padding-left: 1.5rem;
+	margin-bottom: 1rem;
+}
+
+#conteudoPreview li {
+	margin-bottom: 0.5rem;
+}
+
+#conteudoPreview table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1.5rem;
+}
+
+#conteudoPreview table th,
+#conteudoPreview table td {
+	border: 1px solid #dee2e6;
+	padding: 0.5rem;
+	text-align: left;
+}
+
+#conteudoPreview code {
+	background-color: #f8f9fa;
+	padding: 2px 4px;
+	font-size: 90%;
+	border-radius: 4px;
+}
+
+#conteudoPreview pre {
+	background-color: #f1f3f5;
+	padding: 1rem;
+	border-radius: 6px;
+	overflow-x: auto;
+	margin-bottom: 1.5rem;
+}
+
+#conteudoPreview {
+	padding: 2rem;
+	background: #ffffff;
+	color: #212529;
+	font-family: "Segoe UI", Roboto, sans-serif;
+	line-height: 1.4;
+	/* ⬅️ Aqui reduz o espaçamento geral */
+	font-size: 1rem;
+}
+
+#conteudoPreview p,
+#conteudoPreview li {
+	margin-bottom: 0.4rem;
+	/* reduz o espaço entre os itens */
+	line-height: 1.4;
+}
+
+.accordion-button::after {
+	filter: invert(1);
+	transform: scale(1.3);
+}
+
+.btn-default {
+	background-color: #3B6790 !important;
+}
+
+.btn-default:hover {
+	color: white;
 }

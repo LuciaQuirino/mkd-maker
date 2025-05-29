@@ -50,7 +50,9 @@ ${form.foraEscopo.value}
          const intro = requisito.querySelectorAll(".introducao")[j].value;
          const sistema = requisito.querySelectorAll(".sistema")[j].value;
          const caminho = requisito.querySelectorAll(".caminho")[j].value;
-         const regras = requisito.querySelectorAll(".regras")[j].value;
+         const regrasEditor = requisito.querySelectorAll(".quill-editor")[j];
+         const htmlRegras = regrasEditor?.__quill?.root?.innerHTML || "";
+         const regras = new TurndownService().turndown(htmlRegras);
          const funcName = requisito.querySelectorAll(".funcName")[j].value;
          const path = requisito.querySelectorAll(".path")[j].value;
          const descFunc = requisito.querySelectorAll(".descFunc")[j].value;
@@ -118,7 +120,7 @@ if (temFuncionalidade) {
             introducao: requisito.querySelectorAll(".introducao")[i].value,
             sistema: requisito.querySelectorAll(".sistema")[i].value,
             caminho: requisito.querySelectorAll(".caminho")[i].value,
-            regras: requisito.querySelectorAll(".regras")[i].value,
+            regrasHTML: requisito.querySelectorAll(".quill-editor")[i]?.__quill?.root?.innerHTML || "",
             funcName: requisito.querySelectorAll(".funcName")[i].value,
             path: requisito.querySelectorAll(".path")[i].value,
             foraEscopo: [...itensForaEscopo],
@@ -336,10 +338,17 @@ function adicionarUserStory(storiesId) {
    const storyDiv = document.createElement("div");
    storyDiv.className = "card p-3 mb-3 bg-white border";
 
+   // 👇 Identifica o prefixo do requisito (ex: RF03)
+   const parentRequisito = container.closest('.accordion-item');
+   const tituloRequisito = parentRequisito.querySelector('.requisitoTitulo')?.value || '';
+   const prefixo = tituloRequisito.split(' ')[0]; // ex: RF03
+   const count = container.querySelectorAll('.userStory').length + 1;
+   const sugestaoStory = `${prefixo}_US${String(count).padStart(2, '0')}`;
+
    storyDiv.innerHTML = `
     <div class="mb-2">
       <label class="form-label">User Story</label>
-      <input type="text" class="form-control border-secondary userStory">
+      <input type="text" class="form-control border-secondary userStory" value="${sugestaoStory}">
     </div>
     <div class="mb-2">
       <label class="form-label">Introdução</label>
@@ -357,27 +366,28 @@ function adicionarUserStory(storiesId) {
     </div>
     <div class="mb-2">
       <label class="form-label">Regras</label>
-      <textarea class="form-control border-secondary regras"></textarea>
+      <div class="quill-resizable">
+         <div class="quill-editor"></div>
+      </div>
     </div>
     <hr />
     <div class="form-check form-switch mb-2">
-  <input class="form-check-input toggleFuncionalidade" type="checkbox" checked id="switchFunc${Date.now()}">
-  <label class="form-check-label labelToggleFunc" for="switchFunc${Date.now()}">🧩 Terá funcionalidade?</label>
-</div>
-<div class="row blocoFuncionalidade">
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Nome da Funcionalidade</label>
-    <input type="text" class="form-control border-secondary funcName">
-  </div>
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Caminho no Menu</label>
-    <input type="text" class="form-control border-secondary path">
-  </div>
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Descrição</label>
-    <input type="text" class="form-control border-secondary descFunc">
-  </div>
-</div>
+      <input class="form-check-input toggleFuncionalidade" type="checkbox" checked id="switchFunc${Date.now()}">
+      <label class="form-check-label labelToggleFunc" for="switchFunc${Date.now()}">🧩 Terá funcionalidade?</label>
+    </div>
+    <div class="row blocoFuncionalidade">
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Nome da Funcionalidade</label>
+        <input type="text" class="form-control border-secondary funcName">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Caminho no Menu</label>
+        <input type="text" class="form-control border-secondary path">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Descrição</label>
+        <input type="text" class="form-control border-secondary descFunc">
+      </div>
     </div>
     <div class="d-flex justify-content-end mt-3">
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerUserStory(this)">
@@ -388,6 +398,18 @@ function adicionarUserStory(storiesId) {
 
    container.appendChild(storyDiv);
    salvarDados();
+
+   const quillContainer = storyDiv.querySelector('.quill-editor');
+   const quill = new Quill(quillContainer, {
+      theme: "snow",
+      modules: {
+         toolbar: [
+            ["bold", "italic"],
+            [{ list: "bullet" }, { header: [1, 2, 3, false] }],
+         ],
+      },
+   });
+   quillContainer.__quill = quill;
 
    storyDiv
      .querySelector(".toggleFuncionalidade")
@@ -453,10 +475,13 @@ document.addEventListener("DOMContentLoaded", () => {
                storyDiv.querySelector('.introducao').value = story.introducao || "";
                storyDiv.querySelector('.sistema').value = story.sistema || "";
                storyDiv.querySelector('.caminho').value = story.caminho || "";
-               storyDiv.querySelector('.regras').value = story.regras || "";
+               storyDiv.querySelector('.quill-editor').__quill.root.innerHTML = story.regrasHTML || "";
                storyDiv.querySelector('.funcName').value = story.funcName || "";
                storyDiv.querySelector('.path').value = story.path || "";
                storyDiv.querySelector('.descFunc').value = story.descFunc || "";
+
+               const quill = storyDiv.querySelector('.quill-editor').__quill;
+               quill.root.innerHTML = story.regrasHTML || '';
 
                if (!story.temFuncionalidade) {
                  storyDiv.querySelector(
@@ -537,6 +562,7 @@ function salvarDados() {
             funcName: card.querySelector('.funcName')?.value || '',
             path: card.querySelector('.path')?.value || '',
             descFunc: card.querySelector('.descFunc')?.value || '',
+            regrasHTML: card.querySelector('.quill-editor')?.__quill?.root?.innerHTML || '',
             temFuncionalidade: card.querySelector('.toggleFuncionalidade')?.checked || false
         });
         });
@@ -856,4 +882,18 @@ function excluirVersao(index) {
       salvarDados();
     }
   });
+}
+
+function mostrarPreview(event) {
+   if (event) event.preventDefault();
+   gerarMarkdown(); // Atualiza o conteúdo gerado
+
+   const markdown = document.getElementById("resultado").textContent;
+   const htmlRenderizado = marked.parse(markdown);
+
+   const previewContainer = document.getElementById("conteudoPreview");
+   previewContainer.innerHTML = htmlRenderizado;
+
+   const modal = new bootstrap.Modal(document.getElementById("modalPreview"));
+   modal.show();
 }
