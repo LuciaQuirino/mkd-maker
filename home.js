@@ -1,11 +1,10 @@
 
 let carregando = true;
+let historicoVersoes = [];
 
 function gerarMarkdown() {
    const form = document.getElementById('markdownForm');
-   const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-      .map(input => `[${input.value}]`)
-      .join(" - ");
+   const timesSelecionados = ($('#selectTimes').val() || []).map(i => `[${i}]`).join(" - ");
    const nomeProjeto = form.projeto.value;
    const escopoProjeto = form.escopoProjeto.value;
    const analiseRequisitos = form.analiseRequisitos.value;
@@ -21,7 +20,9 @@ function gerarMarkdown() {
 
 | Versão | Data | Autor | Alterações |
 |--------|------|-------|------------|
-| ${form.versao.value} | ${form.data.value} | ${form.autor.value} | versão inicial |
+${historicoVersoes.map(v => 
+   `| ${v.versao} | ${v.data} | ${v.autor} | ${v.alteracoes} |`
+ ).join("\n")}
 
 ## Objetivo
 
@@ -49,7 +50,9 @@ ${form.foraEscopo.value}
          const intro = requisito.querySelectorAll(".introducao")[j].value;
          const sistema = requisito.querySelectorAll(".sistema")[j].value;
          const caminho = requisito.querySelectorAll(".caminho")[j].value;
-         const regras = requisito.querySelectorAll(".regras")[j].value;
+         const regrasEditor = requisito.querySelectorAll(".quill-editor")[j];
+         const htmlRegras = regrasEditor?.__quill?.root?.innerHTML || "";
+         const regras = new TurndownService().turndown(htmlRegras);
          const funcName = requisito.querySelectorAll(".funcName")[j].value;
          const path = requisito.querySelectorAll(".path")[j].value;
          const descFunc = requisito.querySelectorAll(".descFunc")[j].value;
@@ -102,7 +105,8 @@ if (temFuncionalidade) {
       escopoProjeto: form.escopoProjeto.value,
       analiseRequisitos: form.analiseRequisitos.value,
       foraEscopo: itensForaEscopo,
-      times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+      times: $('#selectTimes').val() || [],
+      alteracoes: form.alteracoes.value,
       requisitos: []
    };
 
@@ -116,7 +120,7 @@ if (temFuncionalidade) {
             introducao: requisito.querySelectorAll(".introducao")[i].value,
             sistema: requisito.querySelectorAll(".sistema")[i].value,
             caminho: requisito.querySelectorAll(".caminho")[i].value,
-            regras: requisito.querySelectorAll(".regras")[i].value,
+            regrasHTML: requisito.querySelectorAll(".quill-editor")[i]?.__quill?.root?.innerHTML || "",
             funcName: requisito.querySelectorAll(".funcName")[i].value,
             path: requisito.querySelectorAll(".path")[i].value,
             foraEscopo: [...itensForaEscopo],
@@ -334,10 +338,17 @@ function adicionarUserStory(storiesId) {
    const storyDiv = document.createElement("div");
    storyDiv.className = "card p-3 mb-3 bg-white border";
 
+   // 👇 Identifica o prefixo do requisito (ex: RF03)
+   const parentRequisito = container.closest('.accordion-item');
+   const tituloRequisito = parentRequisito.querySelector('.requisitoTitulo')?.value || '';
+   const prefixo = tituloRequisito.split(' ')[0]; // ex: RF03
+   const count = container.querySelectorAll('.userStory').length + 1;
+   const sugestaoStory = `${prefixo}_US${String(count).padStart(2, '0')}`;
+
    storyDiv.innerHTML = `
     <div class="mb-2">
       <label class="form-label">User Story</label>
-      <input type="text" class="form-control border-secondary userStory">
+      <input type="text" class="form-control border-secondary userStory" value="${sugestaoStory}">
     </div>
     <div class="mb-2">
       <label class="form-label">Introdução</label>
@@ -355,27 +366,28 @@ function adicionarUserStory(storiesId) {
     </div>
     <div class="mb-2">
       <label class="form-label">Regras</label>
-      <textarea class="form-control border-secondary regras"></textarea>
+      <div class="quill-resizable">
+         <div class="quill-editor"></div>
+      </div>
     </div>
     <hr />
     <div class="form-check form-switch mb-2">
-  <input class="form-check-input toggleFuncionalidade" type="checkbox" checked id="switchFunc${Date.now()}">
-  <label class="form-check-label labelToggleFunc" for="switchFunc${Date.now()}">🧩 Terá funcionalidade?</label>
-</div>
-<div class="row blocoFuncionalidade">
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Nome da Funcionalidade</label>
-    <input type="text" class="form-control border-secondary funcName">
-  </div>
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Caminho no Menu</label>
-    <input type="text" class="form-control border-secondary path">
-  </div>
-  <div class="col-md-4 mb-2">
-    <label class="form-label">Descrição</label>
-    <input type="text" class="form-control border-secondary descFunc">
-  </div>
-</div>
+      <input class="form-check-input toggleFuncionalidade" type="checkbox" checked id="switchFunc${Date.now()}">
+      <label class="form-check-label labelToggleFunc" for="switchFunc${Date.now()}">🧩 Terá funcionalidade?</label>
+    </div>
+    <div class="row blocoFuncionalidade">
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Nome da Funcionalidade</label>
+        <input type="text" class="form-control border-secondary funcName">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Caminho no Menu</label>
+        <input type="text" class="form-control border-secondary path">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">Descrição</label>
+        <input type="text" class="form-control border-secondary descFunc">
+      </div>
     </div>
     <div class="d-flex justify-content-end mt-3">
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerUserStory(this)">
@@ -386,6 +398,18 @@ function adicionarUserStory(storiesId) {
 
    container.appendChild(storyDiv);
    salvarDados();
+
+   const quillContainer = storyDiv.querySelector('.quill-editor');
+   const quill = new Quill(quillContainer, {
+      theme: "snow",
+      modules: {
+         toolbar: [
+            ["bold", "italic"],
+            [{ list: "bullet" }, { header: [1, 2, 3, false] }],
+         ],
+      },
+   });
+   quillContainer.__quill = quill;
 
    storyDiv
      .querySelector(".toggleFuncionalidade")
@@ -420,21 +444,24 @@ document.addEventListener("DOMContentLoaded", () => {
       form.versao.value = dados.versao || "";
       form.data.value = dados.data || "";
       form.autor.value = dados.autor || "";
+      form.alteracoes.value = dados.alteracoes || "";
       form.objetivo.value = dados.objetivo || "";
       form.projeto.value = dados.projeto || "";
       form.escopoProjeto.value = dados.escopoProjeto || "#";
       form.analiseRequisitos.value = dados.analiseRequisitos || "#";
 
       if (dados.times) {
-         dados.times.forEach(valor => {
-            const checkbox = document.querySelector(`#checkboxTimes input[value="${valor}"]`);
-            if (checkbox) checkbox.checked = true;
-         });
-      }
+        $("#selectTimes").selectpicker("val", dados.times);
+      }       
 
       if (Array.isArray(dados.foraEscopo)) {
          itensForaEscopo = dados.foraEscopo;
          atualizarLista();
+      }
+
+      if (dados.versoes && Array.isArray(dados.versoes)) {
+        historicoVersoes = dados.versoes;
+        atualizarTabelaVersoes();
       }
 
       if (dados.requisitos) {
@@ -448,10 +475,13 @@ document.addEventListener("DOMContentLoaded", () => {
                storyDiv.querySelector('.introducao').value = story.introducao || "";
                storyDiv.querySelector('.sistema').value = story.sistema || "";
                storyDiv.querySelector('.caminho').value = story.caminho || "";
-               storyDiv.querySelector('.regras').value = story.regras || "";
+               storyDiv.querySelector('.quill-editor').__quill.root.innerHTML = story.regrasHTML || "";
                storyDiv.querySelector('.funcName').value = story.funcName || "";
                storyDiv.querySelector('.path').value = story.path || "";
                storyDiv.querySelector('.descFunc').value = story.descFunc || "";
+
+               const quill = storyDiv.querySelector('.quill-editor').__quill;
+               quill.root.innerHTML = story.regrasHTML || '';
 
                if (!story.temFuncionalidade) {
                  storyDiv.querySelector(
@@ -494,6 +524,8 @@ document.addEventListener("DOMContentLoaded", () => {
    atualizarTituloPagina();
    atualizarSumario();
 
+   $('#selectTimes').on('change', atualizarTituloPagina);
+
    carregando = false;
 });
 
@@ -504,12 +536,14 @@ function salvarDados() {
       versao: form.versao.value,
       data: form.data.value,
       autor: form.autor.value,
+      alteracoes: form.alteracoes.value,
+      versoes: historicoVersoes,
       objetivo: form.objetivo.value,
       projeto: form.projeto.value,
       escopoProjeto: form.escopoProjeto.value,
       analiseRequisitos: form.analiseRequisitos.value,
       foraEscopo: itensForaEscopo,
-      times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+      times: $('#selectTimes').val() || [],
       requisitos: []
    };
 
@@ -528,6 +562,7 @@ function salvarDados() {
             funcName: card.querySelector('.funcName')?.value || '',
             path: card.querySelector('.path')?.value || '',
             descFunc: card.querySelector('.descFunc')?.value || '',
+            regrasHTML: card.querySelector('.quill-editor')?.__quill?.root?.innerHTML || '',
             temFuncionalidade: card.querySelector('.toggleFuncionalidade')?.checked || false
         });
         });
@@ -593,9 +628,10 @@ function exportarJSON() {
 
    const form = document.getElementById("markdownForm");
 
-   const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-      .map(input => input.value.replace(/\s+/g, '-'))
-      .join("_") || "SemTime";
+   const timesSelecionados =
+     ($("#selectTimes").val() || [])
+       .map((t) => t.replace(/\s+/g, "-"))
+       .join("_") || "SemTime";
 
    const nomeProjeto = (form.projeto.value || "Projeto").replace(/\s+/g, '-');
 
@@ -660,16 +696,19 @@ function limparTemplate() {
 }
 
 function atualizarTituloPagina() {
-  const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-    .map(input => {
-      const map = {
-        "Digital Account": "DA",
-        "B2C": "B2C",
-        "PIX": "PIX",
-        "EVA": "EVA"
-      };
-      return map[input.value] || input.value;
-    });
+  const timesSelecionados = ($("#selectTimes").val() || []).map((t) => {
+   const map = {
+     "Digital Account": "DA",
+     B2C: "B2C",
+     PIX: "PIX",
+     EVA: "EVA",
+     Merchant: "Merchant",
+     Bacen: "Bacen",
+     "Payment Processor": "Payment Processor",
+     B2B: "B2B",
+   };
+    return map[t] || t;
+  });
 
   const timesFormatados = timesSelecionados.join(" + ");
   const projetoOriginal = document.getElementById("projeto").value.trim();
@@ -686,7 +725,9 @@ function atualizarTituloPagina() {
   elementoTitulo.innerHTML = `
     <span class="me-2">🧾</span>
     <strong>${projetoOriginal || "Formulário"}</strong>
-    <small class="lead ms-2">${timesSelecionados.length ? `[ ${timesFormatados} ]` : ""}</small>
+    <small class="lead ms-2">${
+      timesSelecionados.length ? `[ ${timesFormatados} ]` : ""
+    }</small>
   `;
 }
 
@@ -764,3 +805,95 @@ document.addEventListener('keydown', function (e) {
       modal.show();
    }
 });
+
+function adicionarVersao() {
+  const form = document.getElementById("markdownForm");
+
+  const nova = {
+    versao: form.versao.value.trim(),
+    data: form.data.value.trim(),
+    autor: form.autor.value.trim(),
+    alteracoes: form.alteracoes.value.trim(),
+  };
+
+  // Evita campos vazios
+  if (!nova.versao || !nova.data || !nova.autor) {
+    Swal.fire({
+      icon: "warning",
+      title: "Campos obrigatórios!",
+      text: "Versão, data e autor são obrigatórios.",
+    });
+    return;
+  }
+
+  historicoVersoes.push(nova);
+  atualizarTabelaVersoes();
+  salvarDados();
+
+  // Limpa campos
+  form.versao.value = "";
+  form.data.value = "";
+  form.autor.value = "";
+  form.alteracoes.value = "";
+}
+
+function atualizarTabelaVersoes() {
+  const tbody = document.querySelector("#tabelaVersoes tbody");
+  const blocoTabela = document.getElementById("blocoTabelaVersoes");
+
+  if (historicoVersoes.length === 0) {
+    blocoTabela.style.display = "none";
+    return;
+  }
+
+  blocoTabela.style.display = "block";
+  tbody.innerHTML = "";
+
+  historicoVersoes.forEach((item, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+       <td>${item.versao}</td>
+       <td>${item.data}</td>
+       <td>${item.autor}</td>
+       <td>${item.alteracoes}</td>
+       <td class="text-center">
+         <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirVersao(${index})">
+           <i class="fa-solid fa-trash"></i>
+         </button>
+       </td>
+     `;
+    tbody.appendChild(tr);
+  });
+}
+ 
+
+function excluirVersao(index) {
+  Swal.fire({
+    icon: "warning",
+    title: "Excluir esta versão?",
+    text: "Essa entrada será removida do histórico.",
+    showCancelButton: true,
+    confirmButtonText: "Sim, excluir",
+    cancelButtonText: "Cancelar",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      historicoVersoes.splice(index, 1);
+      atualizarTabelaVersoes();
+      salvarDados();
+    }
+  });
+}
+
+function mostrarPreview(event) {
+   if (event) event.preventDefault();
+   gerarMarkdown(); // Atualiza o conteúdo gerado
+
+   const markdown = document.getElementById("resultado").textContent;
+   const htmlRenderizado = marked.parse(markdown);
+
+   const previewContainer = document.getElementById("conteudoPreview");
+   previewContainer.innerHTML = htmlRenderizado;
+
+   const modal = new bootstrap.Modal(document.getElementById("modalPreview"));
+   modal.show();
+}
