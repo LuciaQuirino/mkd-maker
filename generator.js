@@ -22,13 +22,7 @@ async function exportarPDFComJsPDF() {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(26);
-  doc.text("Relatório Técnico", 105, 80, { align: "center" });
-  doc.setFontSize(22);
   doc.text(dados.projeto || "Projeto sem nome", 105, 100, { align: "center" });
-  doc.setFontSize(14);
-  doc.text(`Versão: ${dados.versao || "-"}`, 105, 125, { align: "center" });
-  doc.text(`Autor: ${dados.autor || "-"}`, 105, 135, { align: "center" });
-  doc.text(`Data: ${dados.data || dataAtual}`, 105, 145, { align: "center" });
   const timesFormatados = nomeTimes.replace(/-/g, " + ");
   if (timesFormatados) {
     doc.setFont("helvetica", "bold");
@@ -53,19 +47,20 @@ async function exportarPDFComJsPDF() {
     }
   }
 
-  function escreverTextoComQuebra(texto) {
+  function escreverTextoComQuebra(texto, espacamento = 4.5) {
     const linhas = doc.splitTextToSize(texto || "-", 180);
-    const alturaTotal = linhas.length * 6.5;
+    const alturaTotal = linhas.length * espacamento;
     garantirEspaco(alturaTotal);
+  
     for (let i = 0; i < linhas.length; i++) {
       if (y > 275) {
         doc.addPage();
         y = 20;
       }
       doc.text(linhas[i], 14, y);
-      y += 6.5;
+      y += espacamento;
     }
-  }
+  }  
 
   function renderSecao(titulo, texto) {
     garantirEspaco(16);
@@ -74,7 +69,7 @@ async function exportarPDFComJsPDF() {
     doc.setTextColor("#C0392B");
     doc.text(titulo, 14, y);
     doc.setTextColor(0, 0, 0);
-    y += 6;
+    y += 10;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     escreverTextoComQuebra(texto);
@@ -83,6 +78,38 @@ async function exportarPDFComJsPDF() {
   renderSecao("Objetivo", dados.objetivo);
   renderSecao("Escopo do Projeto", dados.escopoProjeto);
   renderSecao("Análise de Requisitos", dados.analiseRequisitos);
+
+  if (Array.isArray(dados.versoes) && dados.versoes.length) {
+    garantirEspaco(20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor("#C0392B");
+    doc.text("Controle de Versões", 14, y);
+    y += 10;
+  
+    doc.autoTable({
+      startY: y,
+      head: [["Versão", "Data", "Autor", "Alterações"]],
+      body: dados.versoes.map(v => [
+        v.versao || "-",
+        v.data || "-",
+        v.autor || "-",
+        v.alteracoes || "-"
+      ]),
+      headStyles: { fillColor: [192, 57, 43], textColor: 255 },
+      styles: { fontSize: 9, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 20 }, // Versão
+        1: { cellWidth: 25 }, // Data
+        2: { cellWidth: 35 }, // Autor
+        3: { cellWidth: 'auto' } // Alterações
+      },
+      theme: "grid",
+      margin: { left: 14, right: 14 }
+    });
+  
+    y = doc.lastAutoTable.finalY + 10;
+  }   
 
   if (dados.foraEscopo?.length) {
     garantirEspaco((dados.foraEscopo.length + 1) * 6);
@@ -124,9 +151,11 @@ async function exportarPDFComJsPDF() {
       doc.text("História:", 14, y);
       doc.setFont("helvetica", "normal");
       doc.text(story.userStory || "-", 40, y);
-      y += 6;
+      y += 10;
 
       escreverTextoComQuebra(story.introducao || "-");
+
+      y += 10;
 
       garantirEspaco(12);
       doc.setFont("helvetica", "bold");
@@ -139,14 +168,109 @@ async function exportarPDFComJsPDF() {
       const caminhoFormatado = (story.caminho || "").replace(/\s*>\s*/g, " > ");
       const caminhoLinhas = doc.splitTextToSize(caminhoFormatado || "-", 60);
       doc.text(caminhoLinhas, 130, y);
-      y += 6;
+      y += 10;
 
+      doc.setFont("helvetica", "normal");
+
+      // 🧽 Extrai o texto da versão HTML
+      function extrairBlocosRegras(html) {
+        const temp = document.createElement("div");
+        temp.innerHTML = html || "";
+      
+        const blocos = [];
+      
+        function addBloco(tipo, texto) {
+          const txt = texto.trim();
+          if (txt && txt !== "-") {
+            blocos.push({ tipo, texto: txt });
+          }
+        }
+      
+        temp.childNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const tag = node.tagName.toLowerCase();
+            const texto = node.textContent.trim();
+            if (!texto) return;
+      
+            switch (tag) {
+              case "h1":
+              case "h2":
+              case "h3":
+                addBloco("titulo", texto);
+                break;
+              case "ul":
+                node.querySelectorAll("li").forEach(li => {
+                  const item = li.textContent.trim();
+                  if (item) addBloco("lista", item);
+                });
+                break;
+              case "p":
+                const onlyBold = [...node.childNodes].every(child =>
+                  child.nodeType === Node.ELEMENT_NODE &&
+                  ["strong", "b"].includes(child.tagName.toLowerCase())
+                );
+                if (onlyBold) {
+                  addBloco("negrito", texto);
+                } else {
+                  addBloco("texto", texto);
+                }
+                break;
+              default:
+                addBloco("texto", texto);
+            }
+          } else if (node.nodeType === Node.TEXT_NODE) {
+            const texto = node.textContent.trim();
+            if (texto && texto !== "-") addBloco("texto", texto);
+          }
+        });
+      
+        return blocos;
+      }              
+      
       doc.setFont("helvetica", "bold");
       doc.text("Regras:", 14, y);
-      y += 6;
-      doc.setFont("helvetica", "normal");
-      escreverTextoComQuebra(story.regras || "-");
+      y += 10;
 
+      const blocos = extrairBlocosRegras(story.regrasHTML || "");
+
+      blocos.forEach(bloco => {
+        let offsetX = 14; // padrão
+        let espacamentoY = 4.5;
+      
+        switch (bloco.tipo) {
+          case "titulo":
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(13);
+            break;
+          case "negrito":
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            break;
+          case "lista":
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(11);
+            bloco.texto = `• ${bloco.texto}`;
+            offsetX = 20; // 👉 recuo aqui!
+            break;
+          default:
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(11);
+        }
+      
+        const linhas = doc.splitTextToSize(bloco.texto, 170);
+        const alturaTotal = linhas.length * espacamentoY;
+        garantirEspaco(alturaTotal);
+      
+        for (let i = 0; i < linhas.length; i++) {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(linhas[i], offsetX, y);
+          y += espacamentoY;
+        }
+      });
+      
       if (story.temFuncionalidade) {
         doc.autoTable({
           head: [["Nome", "Menu", "Descrição"]],
@@ -159,10 +283,6 @@ async function exportarPDFComJsPDF() {
         y = doc.lastAutoTable.finalY + 10;
       }
 
-      doc.setDrawColor(200);
-      doc.setLineWidth(0.3);
-      doc.line(14, y, 195, y);
-      y += 10;
     });
   });
 
