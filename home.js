@@ -1,11 +1,10 @@
 
 let carregando = true;
+let historicoVersoes = [];
 
 function gerarMarkdown() {
    const form = document.getElementById('markdownForm');
-   const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-      .map(input => `[${input.value}]`)
-      .join(" - ");
+   const timesSelecionados = ($('#selectTimes').val() || []).map(i => `[${i}]`).join(" - ");
    const nomeProjeto = form.projeto.value;
    const escopoProjeto = form.escopoProjeto.value;
    const analiseRequisitos = form.analiseRequisitos.value;
@@ -21,7 +20,9 @@ function gerarMarkdown() {
 
 | Versão | Data | Autor | Alterações |
 |--------|------|-------|------------|
-| ${form.versao.value} | ${form.data.value} | ${form.autor.value} | versão inicial |
+${historicoVersoes.map(v => 
+   `| ${v.versao} | ${v.data} | ${v.autor} | ${v.alteracoes} |`
+ ).join("\n")}
 
 ## Objetivo
 
@@ -102,7 +103,8 @@ if (temFuncionalidade) {
       escopoProjeto: form.escopoProjeto.value,
       analiseRequisitos: form.analiseRequisitos.value,
       foraEscopo: itensForaEscopo,
-      times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+      times: $('#selectTimes').val() || [],
+      alteracoes: form.alteracoes.value,
       requisitos: []
    };
 
@@ -420,21 +422,24 @@ document.addEventListener("DOMContentLoaded", () => {
       form.versao.value = dados.versao || "";
       form.data.value = dados.data || "";
       form.autor.value = dados.autor || "";
+      form.alteracoes.value = dados.alteracoes || "";
       form.objetivo.value = dados.objetivo || "";
       form.projeto.value = dados.projeto || "";
       form.escopoProjeto.value = dados.escopoProjeto || "#";
       form.analiseRequisitos.value = dados.analiseRequisitos || "#";
 
       if (dados.times) {
-         dados.times.forEach(valor => {
-            const checkbox = document.querySelector(`#checkboxTimes input[value="${valor}"]`);
-            if (checkbox) checkbox.checked = true;
-         });
-      }
+        $("#selectTimes").selectpicker("val", dados.times);
+      }       
 
       if (Array.isArray(dados.foraEscopo)) {
          itensForaEscopo = dados.foraEscopo;
          atualizarLista();
+      }
+
+      if (dados.versoes && Array.isArray(dados.versoes)) {
+        historicoVersoes = dados.versoes;
+        atualizarTabelaVersoes();
       }
 
       if (dados.requisitos) {
@@ -494,6 +499,8 @@ document.addEventListener("DOMContentLoaded", () => {
    atualizarTituloPagina();
    atualizarSumario();
 
+   $('#selectTimes').on('change', atualizarTituloPagina);
+
    carregando = false;
 });
 
@@ -504,12 +511,14 @@ function salvarDados() {
       versao: form.versao.value,
       data: form.data.value,
       autor: form.autor.value,
+      alteracoes: form.alteracoes.value,
+      versoes: historicoVersoes,
       objetivo: form.objetivo.value,
       projeto: form.projeto.value,
       escopoProjeto: form.escopoProjeto.value,
       analiseRequisitos: form.analiseRequisitos.value,
       foraEscopo: itensForaEscopo,
-      times: Array.from(document.querySelectorAll('#checkboxTimes input:checked')).map(i => i.value),
+      times: $('#selectTimes').val() || [],
       requisitos: []
    };
 
@@ -593,9 +602,10 @@ function exportarJSON() {
 
    const form = document.getElementById("markdownForm");
 
-   const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-      .map(input => input.value.replace(/\s+/g, '-'))
-      .join("_") || "SemTime";
+   const timesSelecionados =
+     ($("#selectTimes").val() || [])
+       .map((t) => t.replace(/\s+/g, "-"))
+       .join("_") || "SemTime";
 
    const nomeProjeto = (form.projeto.value || "Projeto").replace(/\s+/g, '-');
 
@@ -660,16 +670,19 @@ function limparTemplate() {
 }
 
 function atualizarTituloPagina() {
-  const timesSelecionados = Array.from(document.querySelectorAll('#checkboxTimes input:checked'))
-    .map(input => {
-      const map = {
-        "Digital Account": "DA",
-        "B2C": "B2C",
-        "PIX": "PIX",
-        "EVA": "EVA"
-      };
-      return map[input.value] || input.value;
-    });
+  const timesSelecionados = ($("#selectTimes").val() || []).map((t) => {
+   const map = {
+     "Digital Account": "DA",
+     B2C: "B2C",
+     PIX: "PIX",
+     EVA: "EVA",
+     Merchant: "Merchant",
+     Bacen: "Bacen",
+     "Payment Processor": "Payment Processor",
+     B2B: "B2B",
+   };
+    return map[t] || t;
+  });
 
   const timesFormatados = timesSelecionados.join(" + ");
   const projetoOriginal = document.getElementById("projeto").value.trim();
@@ -686,7 +699,9 @@ function atualizarTituloPagina() {
   elementoTitulo.innerHTML = `
     <span class="me-2">🧾</span>
     <strong>${projetoOriginal || "Formulário"}</strong>
-    <small class="lead ms-2">${timesSelecionados.length ? `[ ${timesFormatados} ]` : ""}</small>
+    <small class="lead ms-2">${
+      timesSelecionados.length ? `[ ${timesFormatados} ]` : ""
+    }</small>
   `;
 }
 
@@ -764,3 +779,81 @@ document.addEventListener('keydown', function (e) {
       modal.show();
    }
 });
+
+function adicionarVersao() {
+  const form = document.getElementById("markdownForm");
+
+  const nova = {
+    versao: form.versao.value.trim(),
+    data: form.data.value.trim(),
+    autor: form.autor.value.trim(),
+    alteracoes: form.alteracoes.value.trim(),
+  };
+
+  // Evita campos vazios
+  if (!nova.versao || !nova.data || !nova.autor) {
+    Swal.fire({
+      icon: "warning",
+      title: "Campos obrigatórios!",
+      text: "Versão, data e autor são obrigatórios.",
+    });
+    return;
+  }
+
+  historicoVersoes.push(nova);
+  atualizarTabelaVersoes();
+  salvarDados();
+
+  // Limpa campos
+  form.versao.value = "";
+  form.data.value = "";
+  form.autor.value = "";
+  form.alteracoes.value = "";
+}
+
+function atualizarTabelaVersoes() {
+  const tbody = document.querySelector("#tabelaVersoes tbody");
+  const blocoTabela = document.getElementById("blocoTabelaVersoes");
+
+  if (historicoVersoes.length === 0) {
+    blocoTabela.style.display = "none";
+    return;
+  }
+
+  blocoTabela.style.display = "block";
+  tbody.innerHTML = "";
+
+  historicoVersoes.forEach((item, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+       <td>${item.versao}</td>
+       <td>${item.data}</td>
+       <td>${item.autor}</td>
+       <td>${item.alteracoes}</td>
+       <td class="text-center">
+         <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirVersao(${index})">
+           <i class="fa-solid fa-trash"></i>
+         </button>
+       </td>
+     `;
+    tbody.appendChild(tr);
+  });
+}
+ 
+
+function excluirVersao(index) {
+  Swal.fire({
+    icon: "warning",
+    title: "Excluir esta versão?",
+    text: "Essa entrada será removida do histórico.",
+    showCancelButton: true,
+    confirmButtonText: "Sim, excluir",
+    cancelButtonText: "Cancelar",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      historicoVersoes.splice(index, 1);
+      atualizarTabelaVersoes();
+      salvarDados();
+    }
+  });
+}

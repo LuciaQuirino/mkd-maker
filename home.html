@@ -58,27 +58,19 @@
 
     <form id="markdownForm" class="form">
         <div class="row">
-            <div class="mb-3">
-        <label class="form-label">Times Disponíveis</label>
-        <div id="checkboxTimes" class="d-flex flex-wrap gap-3">
-            <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="Digital Account" id="chkDigital">
-            <label class="form-check-label" for="chkDigital">Digital Account</label>
-            </div>
-            <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="B2C" id="chkB2C">
-            <label class="form-check-label" for="chkB2C">B2C</label>
-            </div>
-            <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="PIX" id="chkPIX">
-            <label class="form-check-label" for="chkPIX">PIX</label>
-            </div>
-            <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="EVA" id="chkEVA">
-            <label class="form-check-label" for="chkEVA">EVA</label>
-            </div>
-        </div>
-        </div>
+          <div class="mb-3">
+            <label class="form-label">Times Disponíveis</label>
+            <select id="selectTimes" class="selectpicker form-control" multiple data-live-search="true" data-width="100%">
+              <option>Digital Account</option>
+              <option>B2C</option>
+              <option>PIX</option>
+              <option>EVA</option>
+              <option>Merchant</option>
+              <option>Bacen</option>
+              <option>Payment Processor</option>
+              <option>B2B</option>
+            </select>
+          </div>          
         </div>
         <hr class="section-divider">
         <div class="row d-flex align-items-end">
@@ -100,19 +92,44 @@
         </div>
 
       <div class="row">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <label for="versao" class="form-label">🔢 Versão</label>
           <input type="text" class="form-control border-secondary" id="versao" name="versao" value="1.1">
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <label for="data" class="form-label">📅 Data</label>
           <input type="date" class="form-control border-secondary" id="data" name="data">
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <label for="autor" class="form-label">👩‍💻 Autor</label>
           <input type="text" class="form-control border-secondary" id="autor" name="autor" value="Lúcia Quirino">
         </div>
+        <div class="col-md-3 mb-3">
+          <label for="alteracoes" class="form-label">📝 Alterações</label>
+          <input type="text" class="form-control border-secondary" id="alteracoes" name="alteracoes" value="">
+        </div>
       </div>
+
+      <div class="mb-3 d-flex justify-content-end">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarVersao()">
+          <i class="fa-solid fa-clock-rotate-left me-1"></i> Nova Versão
+        </button>
+      </div>
+      
+      <div class="table-responsive" id="blocoTabelaVersoes" style="display: none;">
+        <table class="table table-sm table-bordered" id="tabelaVersoes">
+          <thead class="table-light">
+            <tr>
+              <th>Versão</th>
+              <th>Data</th>
+              <th>Autor</th>
+              <th>Alterações</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>      
 
       <div class="mb-3">
         <label for="objetivo" class="form-label">🎯 Objetivo</label>
