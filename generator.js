@@ -146,6 +146,7 @@ async function exportarPDFComJsPDF() {
     req.stories.forEach(story => {
       garantirEspaco(60);
 
+      y += 10;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("História:", 14, y);
@@ -282,6 +283,11 @@ async function exportarPDFComJsPDF() {
         });
         y = doc.lastAutoTable.finalY + 10;
       }
+
+      doc.setDrawColor(200); // cor cinza clara
+      doc.setLineWidth(0.3);
+      doc.line(14, y, 195, y);
+      y += 10;
 
     });
   });
