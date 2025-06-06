@@ -2,7 +2,7 @@
 
 Projeto web simples e funcional para gerar documentação em Markdown, com foco em clareza, organização e exportação prática. Desenvolvido especialmente para auxiliar a Luh no registro de funcionalidades, requisitos e histórias de usuário com agilidade.
 
-🔗 **Acessar:** [https://llima-dev.github.io/mkd-maker/home.html](https://llima-dev.github.io/mkd-maker/home.html)
+🔗 **Acessar:** [https://luciaquirino.github.io/mkd-maker/home.html](https://luciaquirino.github.io/mkd-maker/home.html)
 
 ---
 
